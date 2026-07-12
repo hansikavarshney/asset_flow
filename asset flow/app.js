@@ -6,6 +6,9 @@ let currentRoute = 'dashboard';
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
+  // Initialize theme from storage
+  initTheme();
+  
   // Check if session exists
   const storedUser = localStorage.getItem('assetflow_session');
   if (storedUser) {
@@ -16,6 +19,53 @@ document.addEventListener('DOMContentLoaded', () => {
     renderAuthPage();
   }
 });
+
+// Theme Management
+function initTheme() {
+  const theme = localStorage.getItem('assetflow_theme') || 'light'; // default to light for Notion-like clean start
+  document.documentElement.setAttribute('data-theme', theme);
+}
+
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+  const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('assetflow_theme', newTheme);
+  
+  // Update toggle button icon
+  const icon = document.getElementById('theme-toggle-icon');
+  if (icon) {
+    icon.setAttribute('data-lucide', newTheme === 'light' ? 'moon' : 'sun');
+  }
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
+  showToast(`Theme switched to ${newTheme} mode`, 'info');
+}
+
+// Presence status mapped to user roles (MS Teams styling)
+function getPresenceClass(role) {
+  switch (role) {
+    case 'Admin':
+      return 'busy';       // Red status
+    case 'Asset Manager':
+      return 'online';     // Green status
+    case 'Department Head':
+      return 'away';       // Yellow status
+    case 'Employee':
+    default:
+      return 'online';     // Green status
+  }
+}
+
+function getPresenceLabel(role) {
+  switch (role) {
+    case 'Admin': return 'Busy';
+    case 'Asset Manager': return 'Available';
+    case 'Department Head': return 'Away';
+    default: return 'Available';
+  }
+}
 
 // Auth view
 function renderAuthPage() {
@@ -100,6 +150,8 @@ function renderAppShell() {
   
   // Generate sidebar items based on role
   const sidebarItems = getSidebarNavigation();
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+  const themeIcon = currentTheme === 'light' ? 'moon' : 'sun';
   
   root.innerHTML = `
     <!-- Sidebar -->
@@ -113,7 +165,10 @@ function renderAppShell() {
       </ul>
       <div class="sidebar-footer">
         <div class="user-profile-widget">
-          <div class="user-avatar">${getInitials(currentUser.name)}</div>
+          <div class="user-avatar-wrapper">
+            <div class="user-avatar">${getInitials(currentUser.name)}</div>
+            <span class="presence-dot ${getPresenceClass(currentUser.role)}" title="${getPresenceLabel(currentUser.role)}"></span>
+          </div>
           <div class="user-details">
             <span class="user-name-label">${currentUser.name}</span>
             <span class="user-role-label">${currentUser.role}</span>
@@ -145,6 +200,11 @@ function renderAppShell() {
               <option value="usr-5" ${currentUser.id === 'usr-5' ? 'selected' : ''}>Employee (Raj)</option>
             </select>
           </div>
+          
+          <!-- Theme Switcher -->
+          <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
+            <i data-lucide="${themeIcon}" id="theme-toggle-icon"></i>
+          </button>
           
           <!-- Notifications Bell -->
           <button class="icon-btn" onclick="toggleNotifications(true)">
@@ -234,60 +294,67 @@ function navigateTo(route) {
   const container = document.getElementById('page-container');
   if (!container) return;
   
-  container.innerHTML = '';
+  container.classList.add('fade-out');
   
-  switch(route) {
-    case 'dashboard':
-      renderDashboard(container);
-      break;
-    case 'setup':
-      if (currentUser.role === 'Admin') {
-        renderOrgSetup(container);
-      } else {
-        navigateTo('dashboard');
+  setTimeout(() => {
+    // Skeleton Loader
+    container.innerHTML = `
+      <div style="padding:2rem;">
+        <div class="skeleton" style="width:40%; height:2.5rem; margin-bottom:1.5rem;"></div>
+        <div class="skeleton" style="width:100%; height:8rem; margin-bottom:1rem;"></div>
+        <div class="skeleton" style="width:100%; height:8rem; margin-bottom:1rem;"></div>
+        <div class="skeleton" style="width:60%; height:8rem; margin-bottom:1rem;"></div>
+      </div>
+    `;
+    container.classList.remove('fade-out');
+    container.classList.add('fade-in');
+    
+    setTimeout(() => {
+      container.innerHTML = '';
+      
+      switch(route) {
+        case 'dashboard':
+          renderDashboard(container);
+          break;
+        case 'setup':
+          if (currentUser.role === 'Admin') renderOrgSetup(container);
+          else navigateTo('dashboard');
+          break;
+        case 'directory':
+          renderAssetDirectory(container);
+          break;
+        case 'allocation':
+          if (currentUser.role !== 'Employee') renderAssetAllocation(container);
+          else navigateTo('dashboard');
+          break;
+        case 'booking':
+          renderResourceBooking(container);
+          break;
+        case 'maintenance':
+          renderMaintenance(container);
+          break;
+        case 'audit':
+          if (currentUser.role === 'Admin' || currentUser.role === 'Asset Manager') renderAssetAudit(container);
+          else navigateTo('dashboard');
+          break;
+        case 'reports':
+          if (currentUser.role === 'Admin' || currentUser.role === 'Asset Manager') renderReports(container);
+          else navigateTo('dashboard');
+          break;
+        case 'logs':
+          renderActivityLogs(container);
+          break;
+        default:
+          container.innerHTML = `<h2>Page Not Found</h2>`;
       }
-      break;
-    case 'directory':
-      renderAssetDirectory(container);
-      break;
-    case 'allocation':
-      if (currentUser.role !== 'Employee') {
-        renderAssetAllocation(container);
-      } else {
-        navigateTo('dashboard');
+      
+      if (window.lucide) {
+        window.lucide.createIcons();
       }
-      break;
-    case 'booking':
-      renderResourceBooking(container);
-      break;
-    case 'maintenance':
-      renderMaintenance(container);
-      break;
-    case 'audit':
-      if (currentUser.role === 'Admin' || currentUser.role === 'Asset Manager') {
-        renderAssetAudit(container);
-      } else {
-        navigateTo('dashboard');
-      }
-      break;
-    case 'reports':
-      if (currentUser.role === 'Admin' || currentUser.role === 'Asset Manager') {
-        renderReports(container);
-      } else {
-        navigateTo('dashboard');
-      }
-      break;
-    case 'logs':
-      renderActivityLogs(container);
-      break;
-    default:
-      container.innerHTML = `<h2>Page Not Found</h2>`;
-  }
-  
-  // Refresh icons
-  if (window.lucide) {
-    window.lucide.createIcons();
-  }
+      
+      container.classList.remove('fade-in');
+    }, 200); // skeleton display duration
+  }, 200); // fade out duration
 }
 
 // Quick Dev User Switcher
@@ -309,19 +376,20 @@ function getInitials(name) {
 }
 
 function formatRouteTitle(route) {
-  if (route === 'setup') return 'Organization Setup';
-  if (route === 'directory') return 'Asset Registration & Directory';
-  if (route === 'allocation') return 'Asset Allocation & Transfer';
-  if (route === 'booking') return 'Resource Booking';
-  if (route === 'maintenance') return 'Maintenance Management';
-  if (route === 'audit') return 'Asset Audit Cycles';
-  if (route === 'reports') return 'Reports & Analytics';
-  if (route === 'logs') return 'Activity Logs';
+  if (route === 'setup') return '⚙️ Organization Setup';
+  if (route === 'directory') return '📁 Asset Registration & Directory';
+  if (route === 'allocation') return '🔄 Asset Allocation & Transfer';
+  if (route === 'booking') return '📅 Resource Booking';
+  if (route === 'maintenance') return '🛠️ Maintenance Management';
+  if (route === 'audit') return '📋 Asset Audit Cycles';
+  if (route === 'reports') return '📊 Reports & Analytics';
+  if (route === 'logs') return '📜 Activity Logs';
+  if (route === 'dashboard') return '🏡 Dashboard';
   return route.charAt(0).toUpperCase() + route.slice(1);
 }
 
 // Toast Notification Manager
-function showToast(message, type = 'info') {
+function showToast(message, type = 'info', undoCallback = null) {
   const container = document.getElementById('toast-container');
   if (!container) return;
   
@@ -333,9 +401,17 @@ function showToast(message, type = 'info') {
   if (type === 'danger') iconName = 'alert-triangle';
   if (type === 'warning') iconName = 'alert-circle';
   
+  let undoHTML = '';
+  if (undoCallback) {
+    undoHTML = `<button class="toast-undo-btn" id="undo-btn-${Date.now()}">Undo</button>`;
+  }
+
   toast.innerHTML = `
-    <i data-lucide="${iconName}"></i>
-    <span class="toast-msg">${message}</span>
+    <div style="display:flex; align-items:center;">
+      <i data-lucide="${iconName}"></i>
+      <span class="toast-msg">${message}</span>
+      ${undoHTML}
+    </div>
   `;
   
   container.appendChild(toast);
@@ -344,13 +420,25 @@ function showToast(message, type = 'info') {
     window.lucide.createIcons();
   }
   
+  if (undoCallback) {
+    const btn = toast.querySelector('.toast-undo-btn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        undoCallback();
+        toast.remove();
+      });
+    }
+  }
+
   // Slide out and remove
   setTimeout(() => {
-    toast.classList.add('fade-out');
-    toast.addEventListener('animationend', () => {
-      toast.remove();
-    });
-  }, 4000);
+    if (toast.parentNode) {
+      toast.classList.add('fade-out');
+      toast.addEventListener('animationend', () => {
+        if (toast.parentNode) toast.remove();
+      });
+    }
+  }, undoCallback ? 6000 : 4000);
 }
 
 // Modal control
@@ -445,3 +533,92 @@ function formatTimestamp(timestampStr) {
   const date = new Date(timestampStr);
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
+
+// Global Keyboard Shortcuts
+document.addEventListener('keydown', (e) => {
+  // Ctrl+K or Cmd+K
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    const modal = document.getElementById('search-modal');
+    if (modal) {
+      modal.classList.add('active');
+      setTimeout(() => document.getElementById('global-search-input')?.focus(), 50);
+    }
+  }
+  // ? shortcut
+  if (e.key === '?' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+    const overlay = document.getElementById('shortcuts-modal');
+    if (overlay) overlay.classList.add('active');
+  }
+  // Esc to close modals
+  if (e.key === 'Escape') {
+    closeModal();
+    document.getElementById('shortcuts-modal')?.classList.remove('active');
+    document.getElementById('search-modal')?.classList.remove('active');
+  }
+});
+
+function closeShortcutsModal() {
+  document.getElementById('shortcuts-modal')?.classList.remove('active');
+}
+
+// Global Spotlight Search Logic
+document.addEventListener('input', (e) => {
+  if (e.target.id !== 'global-search-input') return;
+  const q = e.target.value.toLowerCase().trim();
+  const container = document.getElementById('search-results-container');
+  if (!container) return;
+
+  if (!q) { container.innerHTML = ''; return; }
+
+  const results = [];
+
+  // Search assets
+  AssetFlowDB.getAll('assets').filter(a =>
+    a.name.toLowerCase().includes(q) || a.tag.toLowerCase().includes(q) || a.serialNumber.toLowerCase().includes(q)
+  ).slice(0, 4).forEach(a => {
+    results.push({ icon: 'package', label: a.name, sub: a.tag + ' · ' + a.status, action: `navigateTo('directory')` });
+  });
+
+  // Search users
+  AssetFlowDB.getAll('users').filter(u =>
+    u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+  ).slice(0, 3).forEach(u => {
+    results.push({ icon: 'user', label: u.name, sub: u.role + ' · ' + u.email, action: `navigateTo('setup')` });
+  });
+
+  // Search bookings
+  AssetFlowDB.getAll('bookings').filter(b =>
+    b.purpose.toLowerCase().includes(q)
+  ).slice(0, 3).forEach(b => {
+    const asset = AssetFlowDB.getById('assets', b.assetId);
+    results.push({ icon: 'calendar', label: b.purpose, sub: (asset ? asset.name : '') + ' · ' + b.status, action: `navigateTo('booking')` });
+  });
+
+  if (results.length === 0) {
+    container.innerHTML = `<div style="padding:2rem; text-align:center; color:var(--text-muted);">No results for "${q}"</div>`;
+    return;
+  }
+
+  container.innerHTML = results.map((r, i) => `
+    <div class="search-result-item" onclick="document.getElementById('search-modal').classList.remove('active'); ${r.action}">
+      <i data-lucide="${r.icon}" style="width:18px; height:18px; color:var(--primary); flex-shrink:0;"></i>
+      <div>
+        <div style="font-weight:600; color:var(--text-primary);">${r.label}</div>
+        <div style="font-size:0.8rem; color:var(--text-muted);">${r.sub}</div>
+      </div>
+    </div>
+  `).join('');
+
+  if (window.lucide) window.lucide.createIcons();
+});
+
+// Close search when clicking outside
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('search-modal');
+  if (modal && !modal.querySelector('.search-input-wrapper')?.contains(e.target)) {
+    if (modal.classList.contains('active') && !e.target.closest('.search-modal-overlay')) {
+      modal.classList.remove('active');
+    }
+  }
+});

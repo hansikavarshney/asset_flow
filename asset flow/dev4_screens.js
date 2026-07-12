@@ -541,7 +541,18 @@ function renderAssetAudit(container) {
       discrepancyReport: report
     });
 
-    showToast(`Audit cycle closed. ${discrepancies.length} discrepancy items flagged.`, 'warning');
+    // 🎉 Confetti if no discrepancies!
+    if (discrepancies.length === 0 && typeof confetti !== 'undefined') {
+      confetti({
+        particleCount: 200,
+        spread: 90,
+        origin: { y: 0.6 },
+        colors: ['#5c6bc0', '#7c3aed', '#34d399', '#fbbf24', '#f87171']
+      });
+      showToast('🎉 Perfect Audit! Zero discrepancies found!', 'success');
+    } else {
+      showToast(`Audit cycle closed. ${discrepancies.length} discrepancy items flagged.`, 'warning');
+    }
     AssetFlowDB.log(currentUser.id, currentUser.name, 'Close Audit', `Closed audit cycle ${aud.name} with reports.`);
 
     closeModal();
@@ -594,22 +605,59 @@ function renderReports(container) {
     return { hour: `${String(h).padStart(2, '0')}:00`, count };
   });
 
+  // Build donut chart SVG
+  const statusCounts = {
+    Available: assets.filter(a => a.status === 'Available').length,
+    Allocated: assets.filter(a => a.status === 'Allocated').length,
+    Maintenance: assets.filter(a => a.status === 'Under Maintenance').length,
+    Other: assets.filter(a => !['Available','Allocated','Under Maintenance'].includes(a.status)).length
+  };
+  const donutTotal = Object.values(statusCounts).reduce((s,v) => s+v, 0) || 1;
+  const donutColors = { Available: '#34d399', Allocated: '#818cf8', Maintenance: '#fbbf24', Other: '#f87171' };
+  const radius = 60; const cx = 90; const cy = 90; const circ = 2 * Math.PI * radius;
+  let donutOffset = 0;
+  const donutSegments = Object.entries(statusCounts).map(([label, count]) => {
+    const pct = count / donutTotal;
+    const dash = pct * circ;
+    const gap = circ - dash;
+    const seg = `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="none" stroke="${donutColors[label]}" stroke-width="24" stroke-dasharray="${dash.toFixed(2)} ${gap.toFixed(2)}" stroke-dashoffset="${(-donutOffset).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})" style="transition:stroke-dasharray 0.6s ease;"/>`;
+    donutOffset += dash;
+    return seg;
+  }).join('');
+  const donutLegend = Object.entries(statusCounts).map(([label, count]) =>
+    `<div style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;"><span style="width:12px;height:12px;background:${donutColors[label]};border-radius:50%;display:inline-block;"></span>${label}: <strong>${count}</strong></div>`
+  ).join('');
+
   container.innerHTML = `
-    <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem; align-items:center;">
-      <h3 style="font-size:1.1rem; font-weight:600;">Organization Analytics & Insights</h3>
-      <button class="btn btn-secondary" onclick="exportReportsCSV()"><i data-lucide="download"></i> Export Data (CSV)</button>
+    <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem; align-items:center; flex-wrap:wrap; gap:1rem;">
+      <h3 style="font-size:1.1rem; font-weight:600;">Organization Analytics &amp; Insights</h3>
+      <div style="display:flex; gap:0.75rem;">
+        <button class="btn btn-secondary" onclick="exportReportsCSV()"><i data-lucide="download"></i> Export CSV</button>
+        <button class="btn btn-secondary" onclick="window.print()"><i data-lucide="printer"></i> Export PDF</button>
+      </div>
     </div>
 
     <div class="analytics-grid">
+      <!-- Donut Chart - Asset Status Distribution -->
+      <div class="card" style="display:flex; flex-direction:column; align-items:center;">
+        <h4 style="font-size:0.95rem; font-weight:600; color:var(--primary); margin-bottom:1.25rem; align-self:flex-start;">Asset Status Distribution</h4>
+        <svg width="180" height="180" viewBox="0 0 180 180">
+          ${donutSegments}
+          <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" style="font-size:1.6rem; font-weight:700; fill:var(--text-primary);">${donutTotal}</text>
+          <text x="${cx}" y="${cy + 18}" text-anchor="middle" dominant-baseline="middle" style="font-size:0.6rem; fill:var(--text-secondary);">Total Assets</text>
+        </svg>
+        <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem; align-self:flex-start; width:100%;">${donutLegend}</div>
+      </div>
+
       <!-- Utilization Trends -->
       <div class="card">
-        <h4 style="font-size:0.95rem; font-weight:600; color:var(--primary); margin-bottom:1.25rem;">Asset Utilization Trends by Category</h4>
+        <h4 style="font-size:0.95rem; font-weight:600; color:var(--primary); margin-bottom:1.25rem;">Asset Utilization by Category</h4>
         <div class="bar-chart-container">
           ${catUtilization.map(u => `
             <div class="bar-row">
               <span class="bar-label">${u.name}</span>
               <div class="bar-track">
-                <div class="bar-fill" style="width:${u.pct}%"></div>
+                <div class="bar-fill" style="width:${u.pct}%; transition: width 0.8s ease;"></div>
               </div>
               <span class="bar-value">${u.pct}%</span>
             </div>
@@ -628,7 +676,7 @@ function renderReports(container) {
               <div class="bar-row">
                 <span class="bar-label">${f.name}</span>
                 <div class="bar-track">
-                  <div class="bar-fill" style="width:${pct}%; background:linear-gradient(90deg, var(--accent) 0%, var(--danger) 100%);"></div>
+                  <div class="bar-fill" style="width:${pct}%; background:linear-gradient(90deg, var(--accent) 0%, var(--danger) 100%); transition: width 0.8s ease;"></div>
                 </div>
                 <span class="bar-value">${f.count}</span>
               </div>
@@ -636,26 +684,25 @@ function renderReports(container) {
           }).join('')}
         </div>
       </div>
-    </div>
 
-    <!-- Booking Heatmap Card -->
-    <div class="card">
-      <h4 style="font-size:0.95rem; font-weight:600; color:var(--success); margin-bottom:1rem;">Peak Resource Reservation Heatmap (Hourly)</h4>
-      <div style="display:flex; gap:0.5rem; justify-content:space-between; flex-wrap:wrap; margin-top:1rem;">
-        ${hourBookings.map(hb => {
-          let color = 'rgba(255, 255, 255, 0.02)';
-          if (hb.count > 0 && hb.count <= 1) color = 'rgba(99, 102, 241, 0.2)';
-          if (hb.count > 1 && hb.count <= 3) color = 'rgba(99, 102, 241, 0.5)';
-          if (hb.count > 3) color = 'var(--primary)';
-          
-          return `
-            <div style="flex-grow:1; min-width:80px; text-align:center; padding:1rem; border-radius:var(--radius-sm); border:1px solid var(--border-color); background-color:${color};">
-              <div style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:0.25rem;">${hb.hour}</div>
-              <strong style="font-size:1.2rem;">${hb.count}</strong>
-              <div style="font-size:0.7rem; color:var(--text-muted);">Bookings</div>
-            </div>
-          `;
-        }).join('')}
+      <!-- Booking Heatmap Card -->
+      <div class="card">
+        <h4 style="font-size:0.95rem; font-weight:600; color:var(--success); margin-bottom:1rem;">Peak Booking Heatmap (Hourly)</h4>
+        <div style="display:flex; gap:0.5rem; justify-content:space-between; flex-wrap:wrap; margin-top:1rem;">
+          ${hourBookings.map(hb => {
+            let color = 'rgba(255,255,255,0.02)';
+            if (hb.count > 0 && hb.count <= 1) color = 'rgba(99,102,241,0.2)';
+            if (hb.count > 1 && hb.count <= 3) color = 'rgba(99,102,241,0.5)';
+            if (hb.count > 3) color = 'var(--primary)';
+            return `
+              <div style="flex-grow:1; min-width:70px; text-align:center; padding:0.75rem 0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border-color); background-color:${color}; transition: background-color 0.4s ease;">
+                <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.25rem;">${hb.hour}</div>
+                <strong style="font-size:1.1rem;">${hb.count}</strong>
+                <div style="font-size:0.65rem; color:var(--text-muted);">Bookings</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
       </div>
     </div>
   `;
@@ -663,27 +710,20 @@ function renderReports(container) {
   // Export Analytics CSV
   window.exportReportsCSV = function() {
     let csvContent = "data:text/csv;charset=utf-8,";
-    
-    // Utilization
     csvContent += "--- UTILIZATION REPORT ---\nCategory,Total,Allocated,Percentage\n";
-    catUtilization.forEach(u => {
-      csvContent += `${u.name},${u.total},${u.allocated},${u.pct}%\n`;
-    });
-    
-    // Maintenance
+    catUtilization.forEach(u => { csvContent += `${u.name},${u.total},${u.allocated},${u.pct}%\n`; });
     csvContent += "\n--- MAINTENANCE FREQUENCY ---\nCategory,Repairs Count\n";
-    mntFrequency.forEach(f => {
-      csvContent += `${f.name},${f.count}\n`;
-    });
-
+    mntFrequency.forEach(f => { csvContent += `${f.name},${f.count}\n`; });
+    csvContent += "\n--- ASSET STATUS ---\nStatus,Count\n";
+    Object.entries(statusCounts).forEach(([k,v]) => { csvContent += `${k},${v}\n`; });
     const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "AssetFlow_Analytics_Report.csv");
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'AssetFlow_Analytics_Report.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast('Analytics CSV report generated and downloaded.', 'success');
+    showToast('Analytics CSV report downloaded.', 'success');
   };
 }
 

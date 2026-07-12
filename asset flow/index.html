@@ -7,6 +7,10 @@
   <link rel="stylesheet" href="styles.css">
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- QRCode CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
   <div id="app-root">
@@ -47,6 +51,29 @@
 
   <!-- Toasts Container -->
   <div id="toast-container"></div>
+
+  <!-- Global Search Modal (Cmd+K) -->
+  <div class="search-modal-overlay" id="search-modal">
+    <div class="search-input-wrapper">
+      <input type="text" id="global-search-input" placeholder="Search assets, bookings, users..." autocomplete="off">
+      <div class="search-results" id="search-results-container"></div>
+    </div>
+  </div>
+
+  <!-- Shortcuts Panel Modal -->
+  <div class="modal-overlay" id="shortcuts-modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Keyboard Shortcuts</h3>
+        <button class="icon-btn" onclick="closeShortcutsModal()"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="line-height: 2;">
+        <div><kbd>Ctrl/Cmd + K</kbd> &nbsp; Global Search</div>
+        <div><kbd>?</kbd> &nbsp; Show this shortcuts panel</div>
+        <div><kbd>Esc</kbd> &nbsp; Close modals</div>
+      </div>
+    </div>
+  </div>
 
   <!-- Database, Screens & Routing -->
   <script src="db.js"></script>
