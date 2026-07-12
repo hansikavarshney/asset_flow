@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AssetFlow - Enterprise Asset & Resource Management</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div id="app-root">
+    <!-- App Shell (Sidebar, Header, Main Canvas) -->
+    <!-- Logged in state is dynamically injected, otherwise shows Login/Signup -->
+  </div>
+
+  <!-- Notification Drawer -->
+  <div class="ntf-drawer" id="ntf-drawer">
+    <div class="ntf-header">
+      <h3>Notifications</h3>
+      <button class="icon-btn" onclick="toggleNotifications(false)">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="ntf-body" id="ntf-list-container">
+      <!-- Injected notifications -->
+    </div>
+  </div>
+
+  <!-- Global Modal Overlay -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Modal Title</h3>
+        <button class="icon-btn" onclick="closeModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Dynamic Form / Content -->
+      </div>
+      <div class="modal-footer" id="modal-footer">
+        <!-- Action Buttons -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toasts Container -->
+  <div id="toast-container"></div>
+
+  <!-- Database, Screens & Routing -->
+  <script src="db.js"></script>
+  <script src="screens.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

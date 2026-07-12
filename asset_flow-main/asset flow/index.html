@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AssetFlow - Enterprise Asset & Resource Management</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- QRCode CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <div id="app-root">
+    <!-- App Shell (Sidebar, Header, Main Canvas) -->
+    <!-- Logged in state is dynamically injected, otherwise shows Login/Signup -->
+  </div>
+
+  <!-- Notification Drawer -->
+  <div class="ntf-drawer" id="ntf-drawer">
+    <div class="ntf-header">
+      <h3>Notifications</h3>
+      <button class="icon-btn" onclick="toggleNotifications(false)">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="ntf-body" id="ntf-list-container">
+      <!-- Injected notifications -->
+    </div>
+  </div>
+
+  <!-- Global Modal Overlay -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Modal Title</h3>
+        <button class="icon-btn" onclick="closeModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Dynamic Form / Content -->
+      </div>
+      <div class="modal-footer" id="modal-footer">
+        <!-- Action Buttons -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toasts Container -->
+  <div id="toast-container"></div>
+
+  <!-- Global Search Modal (Cmd+K) -->
+  <div class="search-modal-overlay" id="search-modal">
+    <div class="search-input-wrapper">
+      <input type="text" id="global-search-input" placeholder="Search assets, bookings, users..." autocomplete="off">
+      <div class="search-results" id="search-results-container"></div>
+    </div>
+  </div>
+
+  <!-- Shortcuts Panel Modal -->
+  <div class="modal-overlay" id="shortcuts-modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Keyboard Shortcuts</h3>
+        <button class="icon-btn" onclick="closeShortcutsModal()"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="line-height: 2;">
+        <div><kbd>Ctrl/Cmd + K</kbd> &nbsp; Global Search</div>
+        <div><kbd>?</kbd> &nbsp; Show this shortcuts panel</div>
+        <div><kbd>Esc</kbd> &nbsp; Close modals</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Database, Screens & Routing -->
+  <script src="db.js"></script>
+  <script src="dev4_screens.js"></script>
+  <script src="screens.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
