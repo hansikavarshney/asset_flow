@@ -237,22 +237,24 @@ function renderDashboard(container) {
         </div>
       </div>
 
-      <!-- Live Activity Feed -->
-      <div class="card" style="grid-column: 1 / -1;">
-        <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
-          <i data-lucide="activity"></i> Live Activity Feed
-        </h3>
-        <div class="activity-timeline">
-          ${recentLogs.length === 0 ? '<div class="empty-state"><i data-lucide="ghost"></i><p>No recent activity</p></div>' : recentLogs.map(l => `
-            <div class="activity-item">
-              <div class="activity-dot"></div>
-              <div><strong style="color:var(--text-primary);">${l.userName}</strong>: ${l.action}</div>
-              <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">${l.details}</div>
-              <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.2rem;">${new Date(l.timestamp).toLocaleString()}</div>
-            </div>
-          `).join('')}
+      ${currentUser.role === 'Admin' ? `
+        <!-- Live Activity Feed -->
+        <div class="card" style="grid-column: 1 / -1;">
+          <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="activity"></i> Live Activity Feed
+          </h3>
+          <div class="activity-timeline">
+            ${recentLogs.length === 0 ? '<div class="empty-state"><i data-lucide="ghost"></i><p>No recent activity</p></div>' : recentLogs.map(l => `
+              <div class="activity-item">
+                <div class="activity-dot"></div>
+                <div><strong style="color:var(--text-primary);">${l.userName}</strong>: ${l.action}</div>
+                <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:0.25rem;">${l.details}</div>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.2rem;">${new Date(l.timestamp).toLocaleString()}</div>
+              </div>
+            `).join('')}
+          </div>
         </div>
-      </div>
+      ` : ''}
     </div>
   `;
 
